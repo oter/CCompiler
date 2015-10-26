@@ -11,8 +11,29 @@ set(BOOST_ROOT "$ENV{MINGW_HOME}")
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME ON)
-find_package(Boost REQUIRED COMPONENTS regex)
+find_package(Boost REQUIRED COMPONENTS regex wave filesystem system)
+
+############# COMPILER #############
+set(COMPILER_SOURCE_FILES
+        main.cxx
+        preprocessor/PreprocessFile.cxx
+        preprocessor/PreprocessFile.hpp
+        utils/CommentsCleaner.cxx
+        utils/CommentsCleaner.hpp
+        preprocessor/PreprocessedSlice.cxx
+        preprocessor/PreprocessedSlice.hpp
+        preprocessor/PreprocessorDefine.cxx
+        preprocessor/PreprocessorDefine.hpp
+        preprocessor/Preprocessor.cxx
+        preprocessor/Preprocessor.hpp
+        utils/FilesResolver.cxx
+        utils/FilesResolver.hpp
+        utils/FSettings.cxx
+        utils/FSettings.hpp
+        utils/FSingleton.hpp
+)
 add_executable(mycc ${COMPILER_SOURCE_FILES})
+
 set_target_properties(mycc
         PROPERTIES
         DEBUG_POSTFIX -d
@@ -21,3 +42,7 @@ set_target_properties(mycc
 )
 target_include_directories(mycc PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(mycc ${Boost_LIBRARIES})
+
+
+
+
