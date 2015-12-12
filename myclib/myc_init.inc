@@ -1,0 +1,1 @@
+extern std_init_all : proc
