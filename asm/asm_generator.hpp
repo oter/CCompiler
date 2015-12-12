@@ -1,0 +1,8 @@
+//
+// Created by Maxym on 12/12/2015.
+//
+
+#ifndef CCOMPILER_ASM_GENERATOR_HPP
+#define CCOMPILER_ASM_GENERATOR_HPP
+
+#endif //CCOMPILER_ASM_GENERATOR_HPP

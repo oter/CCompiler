@@ -11,37 +11,39 @@ set(BOOST_ROOT "$ENV{MINGW_HOME}")
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME ON)
-find_package(Boost REQUIRED COMPONENTS regex wave filesystem system)
+#find_package(Boost REQUIRED COMPONENTS regex wave filesystem system)
 
 ############# COMPILER #############
 set(COMPILER_SOURCE_FILES
         main.cxx
-        preprocessor/PreprocessFile.cxx
-        preprocessor/PreprocessFile.hpp
-        utils/CommentsCleaner.cxx
-        utils/CommentsCleaner.hpp
-        preprocessor/PreprocessedSlice.cxx
-        preprocessor/PreprocessedSlice.hpp
-        preprocessor/PreprocessorDefine.cxx
-        preprocessor/PreprocessorDefine.hpp
-        preprocessor/Preprocessor.cxx
-        preprocessor/Preprocessor.hpp
-        utils/FilesResolver.cxx
-        utils/FilesResolver.hpp
-        utils/FSettings.cxx
-        utils/FSettings.hpp
-        utils/FSingleton.hpp
-)
-add_executable(mycc ${COMPILER_SOURCE_FILES})
+        # preprocessor/PreprocessFile.cxx
+        # preprocessor/PreprocessFile.hpp
+        # utils/CommentsCleaner.cxx
+        # utils/CommentsCleaner.hpp
+        # preprocessor/PreprocessedSlice.cxx
+        # preprocessor/PreprocessedSlice.hpp
+        # preprocessor/PreprocessorDefine.cxx
+        # preprocessor/PreprocessorDefine.hpp
+        # preprocessor/Preprocessor.cxx
+        # preprocessor/Preprocessor.hpp
+        # utils/FilesResolver.cxx
+        # utils/FilesResolver.hpp
+        # utils/FSettings.cxx
+        # utils/FSettings.hpp
+        # utils/FSingleton.hpp
+        asm/asm_context.hpp
+        asm/asm_context.cxx
+        asm/asm_variable.cxx asm/asm_variable.hpp asm/asm_scope.hpp asm/asm_scope.cxx asm/asm_generator.hpp asm/asm_generator.cxx)
+add_executable(myc ${COMPILER_SOURCE_FILES})
 
-set_target_properties(mycc
+set_target_properties(myc
         PROPERTIES
         DEBUG_POSTFIX -d
         LIBRARY_OUTPUT_DIRECTORY_DEBUG "${COMPILER_BIN_OUTPUT}"
         RUNTIME_OUTPUT_DIRECTORY "${COMPILER_BIN_OUTPUT}"
 )
-target_include_directories(mycc PUBLIC ${Boost_INCLUDE_DIRS})
-target_link_libraries(mycc ${Boost_LIBRARIES})
+target_include_directories(myc PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(myc ${Boost_LIBRARIES})
 
 
 
