@@ -1,65 +1,83 @@
+#include <stack>
 #include <iostream>
-#include <fstream>
-#include "utils/CommentsCleaner.hpp"
-#include "utils/FSingleton.hpp"
-#include "utils/FSettings.hpp"
-#include <iterator>
 
-// Disable warnings when use deprecated features like auto_ptr in boost.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#include "tree_syntax/tree_syntax.hpp"
+#include "tree_syntax/tree_syntax_helper.hpp"
+#include "AstProxy.hpp"
+//#include "assembly.hpp"
 
-#include <boost/regex.hpp>
+//
+//Disable warnings when use deprecated features like auto_ptr in boost.
+//#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+//
+//#include <boost/regex.hpp>
+//
+//#pragma GCC diagnostic pop
 
-#pragma GCC diagnostic pop
+static const std::string help_message = R"msg(
+Welcome to My C compiler.
+    usage:
+    myc [OPTION] [file]
 
-int main()
+    Options     Description
+    --c         Compile
+    --ast       Print ast
+    --help      Print this help message
+)msg";
+
+enum class Operation
 {
-    auto settings = FSingleton<FSettings>::GetInstance();
-    settings->LoadDefaultSettings();
+    kCompile,
+    kPrintAst,
+    kPrintHelp
+};
 
-    const auto &p = settings->Get<bool>("Pedantic");
+void PrintHelp()
+{
+    std::cout << help_message;
+}
 
-    std:: cout << p;
-
-
-    std::ifstream in_file;
-    in_file.open("./../tests/preprocessor/comments.c");
-    if (!in_file.is_open())
+Operation HandleConsoleArgs(int argc, char *argv[], std::string& file_to_compile)
+{
+    ++argv, --argc; // Ignore compiler executable path
+    switch (argc)
     {
-        std::cout << "Error: Cannot open file comments.c" << std::endl;
-        return 0;
+        case 2:
+        {
+            if (std::string(argv[0]).compare("--ast") == 0)
+            {
+                file_to_compile = argv[1];
+                return Operation::kPrintAst;
+            } else if (std::string(argv[0]).compare("--c") == 0)
+            {
+                file_to_compile = argv[1];
+                return Operation::kCompile;
+            }
+        }
+        default:
+            PrintHelp();
+            return Operation::kPrintHelp;
     }
-    if (in_file.fail())
+};
+
+int main(int argc, char *argv[])
+{
+    std::string file_to_compile;
+    auto operation = HandleConsoleArgs(argc, argv, file_to_compile);
+    if (operation == Operation::kPrintHelp) { return 1; }
+
+    AstProxy ast;
+    int result = ast.ProcessFile(file_to_compile);
+    if (result != 0) { return result; }
+    auto root = ast.root();
+
+    if (operation == Operation::kPrintAst)
     {
-        std::cout << "Error occured." << std::endl;
-        return 0;
-    }
-
-    if (!in_file.seekg(0, std::ios::end))
+        TreeSyntaxHelper::OutputTreeSyntax(std::cout, root, 0);
+    } else
     {
+        // TODO: Write assembly
     }
-
-    auto file_length = in_file.tellg();
-    in_file.seekg(0, std::ios::beg);
-
-    std::string file_content;
-    file_content.reserve(file_length);
-
-    file_content.assign(std::istreambuf_iterator<char>(in_file), std::istreambuf_iterator<char>());
-
-    std::cout << file_content << std::endl;
-    in_file.close();
-
-    CommentsCleaner cleaner(file_content);
-
-    std::cout << "#####################" << std::endl;
-    std::cout << cleaner.ToString();
-
-    std::ofstream out_file("out.c");
-    out_file << cleaner.ToString();
-
-    out_file.close();
-
     return 0;
 }
