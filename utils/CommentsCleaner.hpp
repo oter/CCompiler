@@ -28,7 +28,6 @@ private:
 
 private:
     std::string buffer_;
-
 };
 
 

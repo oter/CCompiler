@@ -19,13 +19,8 @@ set(COMPILER_SOURCE_FILES
         grammar/parser.hxx
         grammar/lexer.cxx
         main.cxx
-        # utils/CommentsCleaner.cxx
-        # utils/CommentsCleaner.hpp
-        # utils/FilesResolver.cxx
-        # utils/FilesResolver.hpp
-        # utils/FSettings.cxx
-        # utils/FSettings.hpp
-        # utils/FSingleton.hpp
+        utils/CommentsCleaner.cxx
+        utils/CommentsCleaner.hpp
         asm/asm_context.hpp
         asm/asm_context.cxx
         asm/asm_variable.cxx
@@ -37,7 +32,9 @@ set(COMPILER_SOURCE_FILES
         tree_syntax/tree_syntax.hpp
         tree_syntax/tree_syntax.cxx
         tree_syntax/tree_syntax_helper.hpp
-        tree_syntax/tree_syntax_helper.cxx)
+        tree_syntax/tree_syntax_helper.cxx
+        AstProxy.cxx
+        AstProxy.hpp)
 add_executable(myc ${COMPILER_SOURCE_FILES})
 
 set_target_properties(myc
