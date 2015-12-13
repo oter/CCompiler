@@ -20,12 +20,14 @@ public:
 
     size_t labels_count() const noexcept { return this->labels_count_; }
 
+    std::string GetLabel(const std::string&prefix);
+
 private:
     int stack_offset_;
     size_t labels_count_;
     std::shared_ptr<AsmScope> current_scope_;
-
 };
 
+using AsmContextShared = std::shared_ptr<AsmContext>;
 
 #endif //CCOMPILER_ASM_CONTEXT_HPP
