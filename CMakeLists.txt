@@ -11,7 +11,7 @@ set(BOOST_ROOT "$ENV{MINGW_HOME}")
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME ON)
-#find_package(Boost REQUIRED COMPONENTS regex wave filesystem system)
+find_package(Boost REQUIRED COMPONENTS system)
 
 ############# COMPILER #############
 set(COMPILER_SOURCE_FILES
