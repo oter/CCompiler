@@ -102,7 +102,7 @@ void TreeSyntaxHelper::OutputTreeSyntax(std::ostream &out, TreeSyntaxShared root
         {
             auto& name = std::static_pointer_cast<TreeDefineVariable>(root)->name();
             out << type_str << " \"" << name << "\"\n";
-            out << indent_str << " \"" << name << "\" INITIAL_VALUE";
+            out << indent_str << " \"" << name << "\" INITIAL_VALUE\n";
             OutputTreeSyntax(out, std::static_pointer_cast<TreeDefineVariable>(root)->init_value(), indent + kDefaultIndent);
             break;
         }
