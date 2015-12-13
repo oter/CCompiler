@@ -78,15 +78,15 @@ private:
 class TreeDefineVariable : public TreeSyntax
 {
 public:
-    explicit TreeDefineVariable(const std::string& var_name, TreeSyntaxShared init_value) :
+    explicit TreeDefineVariable(const std::string& name, TreeSyntaxShared init_value) :
             TreeSyntax(TreeSyntaxType::kDefineVariable),
-            var_name_(var_name),
+            name_(name),
             init_value_(init_value) {}
     virtual ~TreeDefineVariable() = default;
-    const std::string& condition() const noexcept { return this->var_name_; }
+    const std::string& name() const noexcept { return this->name_; }
     const TreeSyntaxShared& init_value() const noexcept { return this->init_value_; }
 private:
-    std::string var_name_;
+    std::string name_;
     TreeSyntaxShared init_value_;
 };
 
@@ -131,6 +131,7 @@ public:
             args_(args) {}
     virtual ~TreeFunctionArguments() = default;
     const std::vector<TreeSyntaxShared>& args() const noexcept { return this->args_; }
+    void AddArgument(const TreeSyntaxShared& arg) { this->args_.push_back(arg); }
 private:
     std::vector<TreeSyntaxShared> args_;
 };
@@ -215,6 +216,7 @@ public:
             stmts_(stmts) {}
     virtual ~TreeStatementsBlock() = default;
     const std::vector<TreeSyntaxShared>& stmts() const noexcept { return this->stmts_; }
+    void AddStatement(const TreeSyntaxShared& stmt) { this->stmts_.push_back(stmt); }
 private:
     std::vector<TreeSyntaxShared> stmts_;
 };
@@ -226,7 +228,8 @@ public:
     explicit TreeFunction(const std::string& name, const std::vector<TreeSyntaxShared>& args, TreeSyntaxShared root) :
             TreeSyntax(TreeSyntaxType::kFunction),
             name_(name),
-            args_(args) {}
+            args_(args),
+            root_(root){}
     virtual ~TreeFunction() = default;
     const std::string& name() const noexcept { return this->name_; }
     const std::vector<TreeSyntaxShared>& args() const noexcept { return this->args_; }
@@ -260,6 +263,7 @@ public:
             decls_(decls) {}
     virtual ~TreeTopLevel() = default;
     const std::vector<TreeSyntaxShared>& decls() const noexcept { return this->decls_; }
+    void AddDeclaration(TreeSyntaxShared decl) {this->decls_.push_back(decl); }
 private:
     std::vector<TreeSyntaxShared> decls_;
 };
