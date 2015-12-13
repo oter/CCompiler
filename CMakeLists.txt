@@ -15,17 +15,10 @@ set(Boost_USE_STATIC_RUNTIME ON)
 
 ############# COMPILER #############
 set(COMPILER_SOURCE_FILES
+        # grammar/lexer.hxx
         main.cxx
-        # preprocessor/PreprocessFile.cxx
-        # preprocessor/PreprocessFile.hpp
         # utils/CommentsCleaner.cxx
         # utils/CommentsCleaner.hpp
-        # preprocessor/PreprocessedSlice.cxx
-        # preprocessor/PreprocessedSlice.hpp
-        # preprocessor/PreprocessorDefine.cxx
-        # preprocessor/PreprocessorDefine.hpp
-        # preprocessor/Preprocessor.cxx
-        # preprocessor/Preprocessor.hpp
         # utils/FilesResolver.cxx
         # utils/FilesResolver.hpp
         # utils/FSettings.cxx
@@ -33,7 +26,14 @@ set(COMPILER_SOURCE_FILES
         # utils/FSingleton.hpp
         asm/asm_context.hpp
         asm/asm_context.cxx
-        asm/asm_variable.cxx asm/asm_variable.hpp asm/asm_scope.hpp asm/asm_scope.cxx asm/asm_generator.hpp asm/asm_generator.cxx)
+        asm/asm_variable.cxx
+        asm/asm_variable.hpp
+        asm/asm_scope.hpp
+        asm/asm_scope.cxx
+        asm/asm_generator.hpp
+        asm/asm_generator.cxx
+        tree_syntax/tree_syntax.hpp
+        tree_syntax/tree_syntax.cxx
 add_executable(myc ${COMPILER_SOURCE_FILES})
 
 set_target_properties(myc
