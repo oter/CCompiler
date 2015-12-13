@@ -15,7 +15,9 @@ set(Boost_USE_STATIC_RUNTIME ON)
 
 ############# COMPILER #############
 set(COMPILER_SOURCE_FILES
-        # grammar/lexer.hxx
+        grammar/parser.cxx
+        grammar/parser.hxx
+        grammar/lexer.cxx
         main.cxx
         # utils/CommentsCleaner.cxx
         # utils/CommentsCleaner.hpp
@@ -34,6 +36,8 @@ set(COMPILER_SOURCE_FILES
         asm/asm_generator.cxx
         tree_syntax/tree_syntax.hpp
         tree_syntax/tree_syntax.cxx
+        tree_syntax/tree_syntax_helper.hpp
+        tree_syntax/tree_syntax_helper.cxx)
 add_executable(myc ${COMPILER_SOURCE_FILES})
 
 set_target_properties(myc
