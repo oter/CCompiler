@@ -19,6 +19,9 @@ class TreeSyntaxHelper
 public:
 
     static const std::string& GetSyntaxTypeName(TreeSyntaxShared node);
+
+    static void OutputTreeSyntax(std::ostream& out, TreeSyntaxShared root, size_t indent);
+
 private:
     const static std::map<TreeSyntaxType, std::string> tree_syntax_types_;
     const static std::map<TreeUnaryExpressionType, std::string> tree_unary_types_;
