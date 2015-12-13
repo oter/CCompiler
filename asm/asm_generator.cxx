@@ -2,7 +2,6 @@
 // Created by Maxym on 12/12/2015.
 //
 #include "asm_generator.hpp"
-#include "asm_context.hpp"
 
 //Disable warnings when use deprecated features like auto_ptr in boost.
 #pragma GCC diagnostic push
@@ -10,21 +9,51 @@
 #include <boost/format.hpp>
 #pragma GCC diagnostic pop
 
-
-
 decltype(AsmGenerator::asm_indent_) AsmGenerator::asm_indent_ = "    ";
 
 AsmGenerator::AsmGenerator(std::ostream& out, TreeSyntaxShared root) : out_(out)
 {
     PutHeader();
     auto ctx = std::make_shared<AsmContext>();
-    Generate(out, root, ctx);
+    Generate(root, ctx);
     PutEnding();
 }
 
-void AsmGenerator::Generate(std::ostream &out, TreeSyntaxShared root, AsmContextShared ctx)
+void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
 {
-
+    switch (root->type())
+    {
+        case TreeSyntaxType::kImmediate:break;
+        case TreeSyntaxType::kVariable:break;
+        case TreeSyntaxType::kUnaryOperator:
+        {
+            auto expr = std::static_pointer_cast<TreeUnaryExpression>(root);
+            // Expand expression first
+            // TODO: Add unary operations for ++ and --
+            Generate(expr->expr(), ctx);
+            if (expr->type() == TreeUnaryExpressionType::kBitwiseNegation)
+            {
+                PutInstruction("not", "%eax");
+            } else if (expr->type() == TreeUnaryExpressionType::kLogicalNegation)
+            {
+                PutInstruction("test", "$0xFFFFFFFF, %eax");
+                PutInstruction("setz", "%al");
+            }
+            break;
+        }
+        case TreeSyntaxType::kBinaryOperator:break;
+        case TreeSyntaxType::kStatementsBlock:break;
+        case TreeSyntaxType::kIfStatement:break;
+        case TreeSyntaxType::kReturnStatement:break;
+        case TreeSyntaxType::kDefineVariable:break;
+        case TreeSyntaxType::kFunction:break;
+        case TreeSyntaxType::kFunctionCall:break;
+        case TreeSyntaxType::kFunctionArgument:break;
+        case TreeSyntaxType::kFunctionArguments:break;
+        case TreeSyntaxType::kAssignment:break;
+        case TreeSyntaxType::kWhileStatement:break;
+        case TreeSyntaxType::kTopLevel:break;
+    }
 }
 
 void AsmGenerator::PutInstruction(const std::string &instr, const std::string& args)

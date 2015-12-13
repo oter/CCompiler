@@ -20,7 +20,7 @@ public:
     explicit AsmGenerator(std::ostream& out, TreeSyntaxShared root);
 
 private:
-    void Generate(std::ostream& out, TreeSyntaxShared root, AsmContextShared ctx);
+    void Generate(TreeSyntaxShared root, AsmContextShared ctx);
     void PutHeader();
     void PutEnding();
     void PutFunctionDeclaration(const std::string& name);
