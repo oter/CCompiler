@@ -63,6 +63,9 @@ int AstProxy::ProcessFile(const std::string &file_name)
         return -2;
     }
 
+    // Empty the working stack
+    while(!syntax_stack.empty()) { syntax_stack.pop(); }
+    // Parse 
     int parse_result = yyparse();
     if (parse_result != 0) {
         std::cerr << "Error while processing file: " << file_path_cleaned << std::endl;
