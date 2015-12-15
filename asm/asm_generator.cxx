@@ -23,34 +23,79 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
 {
     switch (root->type())
     {
-        case TreeSyntaxType::kImmediate:break;
-        case TreeSyntaxType::kVariable:break;
+        case TreeSyntaxType::kImmediate:
+            PutInstruction("mov", (boost::format("$%1%, %%eax") % std::static_pointer_cast<TreeImmediate>(root)->value()).str());
+            break;
+        case TreeSyntaxType::kVariable:
+            PutInstruction("mov", (boost::format("%1%(%%ebp), %%eax") % ctx->current_scope()->GetVariable(std::static_pointer_cast<TreeVariable>(root)->name())->offset()).str());
+            break;
         case TreeSyntaxType::kUnaryOperator:
         {
             auto expr = std::static_pointer_cast<TreeUnaryExpression>(root);
             // Expand expression first
             // TODO: Add unary operations for ++ and --
-            Generate(expr->expr(), ctx);
-            if (expr->type() == TreeUnaryExpressionType::kBitwiseNegation)
+            Generate(expr->expression(), ctx);
+            if (expr->expr_type() == TreeUnaryExpressionType::kBitwiseNegation)
             {
                 PutInstruction("not", "%eax");
-            } else if (expr->type() == TreeUnaryExpressionType::kLogicalNegation)
+            } else if (expr->expr_type() == TreeUnaryExpressionType::kLogicalNegation)
             {
                 PutInstruction("test", "$0xFFFFFFFF, %eax");
                 PutInstruction("setz", "%al");
             }
             break;
         }
-        case TreeSyntaxType::kBinaryOperator:break;
+        case TreeSyntaxType::kBinaryOperator:
+        {
+            auto binary = std::static_pointer_cast<TreeBinaryExpression>(root);
+            int offset = ctx->stack_offset();
+            ctx->set_stack_offset(offset - AsmContext::kWordSize);
+
+            PutInstruction("sub", "$4, %esp");
+            Generate(binary->rhs(), ctx);
+
+            switch (binary->expr_type())
+            {
+                case TreeBinaryExpressionType::kMultiplication:
+                    PutInstruction("mull", (boost::format("%1%(%%ebp)") % offset).str());
+                    break;
+                case TreeBinaryExpressionType::kAddition:
+                    PutInstruction("add", (boost::format("%1%(%%ebp), %%eax") % offset).str());
+                    break;
+                case TreeBinaryExpressionType::kSubtraction:
+                    PutInstruction("sub", (boost::format("%%eax, %1%(%%ebp)") % offset).str());
+                    PutInstruction("mov", (boost::format("%1%(%%ebp), %%eax") % offset).str());
+                    break;
+                case TreeBinaryExpressionType::kLessThan:
+                    PutInstruction("cmp", (boost::format("%%eax, %1%(%%ebp)") % offset).str());
+                    PutInstruction("setl", "%al");
+                    PutInstruction("movzbl", (boost::format("%al, %eax") % offset).str());
+                    break;
+                case TreeBinaryExpressionType::kLessThanOrEqual:
+                    PutInstruction("cmp", (boost::format("%%eax, %1%(%%ebp)") % offset).str());
+                    PutInstruction("setle", "%al");
+                    PutInstruction("movzbl", (boost::format("%al, %eax") % offset).str());
+                    break;
+            }
+            break;
+        }
         case TreeSyntaxType::kStatementsBlock:break;
         case TreeSyntaxType::kIfStatement:break;
-        case TreeSyntaxType::kReturnStatement:break;
+        case TreeSyntaxType::kReturnStatement:
+            Generate(std::static_pointer_cast<TreeReturnStatement>(root)->expression(), ctx);
+            break;
         case TreeSyntaxType::kDefineVariable:break;
         case TreeSyntaxType::kFunction:break;
         case TreeSyntaxType::kFunctionCall:break;
         case TreeSyntaxType::kFunctionArgument:break;
         case TreeSyntaxType::kFunctionArguments:break;
-        case TreeSyntaxType::kAssignment:break;
+        case TreeSyntaxType::kAssignment:
+        {
+            auto assign = std::static_pointer_cast<TreeAssignment>(root);
+            Generate(assign->expr(), ctx);
+            PutInstruction("mov", (boost::format("%%eax, %1%(%%ebp)") % ctx->current_scope()->GetVariable(assign->var_name())->offset()).str());
+            break;
+        }
         case TreeSyntaxType::kWhileStatement:break;
         case TreeSyntaxType::kTopLevel:break;
     }
