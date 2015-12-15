@@ -1,7 +1,3 @@
-
-D			[0-9]
-L			[a-zA-Z_]
-
 %{
 #define YYSTYPE char*
 #include <string>
@@ -13,42 +9,39 @@ extern "C" int yywrap()
 {
     return 1;
 }
+
 %}
 
 
+alpha [a-zA-Z_]
+digit [0-9]
+
 %%
-"#include"    { return INCLUDE; }
-#[^\n]*       { /* Discard preprocessor comments. */ }
-"//"[^\n]*    { /* Discard c99 comments. */ }
-"/*"          { comment(); }
-[ \t\n]+      { /* Ignore whitespace */ }
-
-"{"           { return OPEN_BRACE; }
-"}"           { return CLOSE_BRACE; }
-"("           { return '('; }
-")"           { return ')'; }
-"~"           { return '~'; }
-"!"           { return '!'; }
-"+"           { return '+'; }
-"-"           { return '-'; }
-"*"           { return '*'; }
-"<"           { return '<'; }
-"<="          { return LESS_OR_EQUAL; }
-"="           { return '='; }
-";"           { return ';'; }
-","           { return ','; }
-[0-9]+        {
-                  /* TODO: Binary values, hex values; Add checks  */
-                  yylval = strdup(yytext); return NUMBER;
-              }
-"if"          { return IF; }
-"while"       { return WHILE; }
-"return"      { return RETURN; }
-
-"int"         { return TYPE; }
-{L}({L}|{D})* { yylval = strdup(yytext); return IDENTIFIER; }
-
-"<"[a-z.]+">" { return HEADER_NAME; }
+#[^\n]*       				{ /* Discard preprocessor comments. */ }
+"//"[^\n]*    				{ /* Discard c99 comments. */ }
+"/*"          				{ comment(); }
+[ \t]                       ;
+[ \n]                       { yylineno = yylineno + 1; }
+"int"                       { yylval = strdup("int"); return INT; }
+"float"                     { yylval = strdup("float"); return FLOAT; }
+"for"                       { return FOR; }
+"while"                     { return WHILE; }
+"if"                        { return IF; }
+"else"                      { return ELSE; }
+"return"					{ return RET; }
+{digit}+                    { yylval = strdup(yytext); return NUM; }
+{alpha}({alpha}|{digit})*   { yylval = strdup(yytext); return ID; }
+"<="                        { return LE; }
+">="                        { return GE; }
+"=="                        { return EQ; }
+"!="                        { return NE; }
+">"                         { return GT; }
+"<"                         { return LT; }
+"&&"                        { return AND; }
+"||"                        { return OR; }
+"!"                         { return NOT; }
+\/\*(.*\n)*.*\*\/           ;
+.						{ return yytext[0]; };
 %%
 
 #define INPUT_EOF 0

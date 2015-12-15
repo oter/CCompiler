@@ -10,10 +10,12 @@
 
 int yyparse(void);
 int yylex();
+extern char* yytext;
+extern int yylineno;
 
 void yyerror(const std::string& err)
 {
-    std::cerr << "Error: " << err << std::endl;
+    std::cerr << "Error: " << err << " " << yytext << std::endl << "At line: " << yylineno << std::endl;
 }
 
 int yywrap()
@@ -26,250 +28,270 @@ extern FILE *yyin;
 std::stack<TreeSyntaxShared> syntax_stack;
 %}
 
-%token INCLUDE HEADER_NAME
-%token TYPE IDENTIFIER RETURN NUMBER
-%token OPEN_BRACE CLOSE_BRACE
-%token IF WHILE
-%token LESS_OR_EQUAL
+%token INT FLOAT CHAR RET
+%token FOR WHILE 
+%token IF ELSE
+%token NUM ID LE GE EQ NE LT GT AND OR NOT
 
-/* Operator associativity, least precedence first.
- * See http://en.cppreference.com/w/c/language/operator_precedence
- */
-%left '='
-%left '<'
-%left '+'
-%left '-'
-%left '*'
-%nonassoc '!'
-%nonassoc '~'
-
+%left NOT
+%right '='
+%left AND OR
+%left '<' '>' LE GE EQ NE LT GT
 %%
 
-program:
-        function program
+start : Function
+    {
+        TreeSyntaxShared top_level_syntax;
+        if (syntax_stack.empty())
         {
-            TreeSyntaxShared top_level_syntax;
-            if (syntax_stack.empty())
-            {
-                top_level_syntax = std::make_shared<TreeTopLevel>(std::vector<TreeSyntaxShared >{});
-            } else if (syntax_stack.top()->type() != TreeSyntaxType::kTopLevel)
-            {
-                top_level_syntax = std::make_shared<TreeTopLevel>(std::vector<TreeSyntaxShared >{});
-            } else
-            {
-                top_level_syntax = syntax_stack.top();
-                syntax_stack.pop();
-            }
-            std::static_pointer_cast<TreeTopLevel>(top_level_syntax)->AddDeclaration(syntax_stack.top());
+            top_level_syntax = std::make_shared<TreeTopLevel>(std::vector<TreeSyntaxShared >{});
+        } else if (syntax_stack.top()->type() != TreeSyntaxType::kTopLevel)
+        {
+            top_level_syntax = std::make_shared<TreeTopLevel>(std::vector<TreeSyntaxShared >{});
+        } else
+        {
+            top_level_syntax = syntax_stack.top();
             syntax_stack.pop();
-            syntax_stack.push(top_level_syntax);
         }
-        |
-        ;
+        std::static_pointer_cast<TreeTopLevel>(top_level_syntax)->AddDeclaration(syntax_stack.top());
+        syntax_stack.pop();
+        syntax_stack.push(top_level_syntax);
+    } 
+    | 
+    Declaration
+    {
+        TreeSyntaxShared top_level_syntax;
+        if (syntax_stack.empty())
+        {
+            top_level_syntax = std::make_shared<TreeTopLevel>(std::vector<TreeSyntaxShared >{});
+        } else if (syntax_stack.top()->type() != TreeSyntaxType::kTopLevel)
+        {
+            top_level_syntax = std::make_shared<TreeTopLevel>(std::vector<TreeSyntaxShared >{});
+        } else
+        {
+            top_level_syntax = syntax_stack.top();
+            syntax_stack.pop();
+        }
+        std::static_pointer_cast<TreeTopLevel>(top_level_syntax)->AddDeclaration(syntax_stack.top());
+        syntax_stack.pop();
+        syntax_stack.push(top_level_syntax);
+    }
+    ;
 
-function:
-	TYPE IDENTIFIER '(' parameter_list ')' OPEN_BRACE block CLOSE_BRACE
-        {
-            auto current_syntax = syntax_stack.top();
-            syntax_stack.pop();
-            assert(current_syntax->type() == TreeSyntaxType::kStatementsBlock && "Type must be TreeSyntaxType::kStatementsBlock.");
-            syntax_stack.push(std::make_shared<TreeFunction>($2, std::vector<TreeSyntaxShared>{}, current_syntax));
-        }
-        ;
+/* Declaration block */
+Declaration: Type ID ';'
+    {
+        // TODO: Type $1
+        // TODO: Check for nullptr
+        std::cout << "Warning: Uninitialized variable." << std::endl;
+        syntax_stack.push(std::make_shared<TreeDefineVariable>($2, nullptr));
+    }
+    |
+    Type ID '=' Assignment ';'
+    {
+        auto init_value = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeDefineVariable>($2, init_value));
+    }
+    | Assignment ';'
+    {
+        // Nothing to do
+    }  
+    | FunctionCall ';'
+    {
+        // Nothing to do
+    }
+    | ArrayUsage ';'
+    {
+        // Nothing to do
+    }
+    ;
 
-parameter_list:
-        nonempty_parameter_list
-        |
-        ;
+/* Assignment block */
+Assignment: ID '=' Assignment
+    {
 
-nonempty_parameter_list:
-        TYPE IDENTIFIER ',' parameter_list
-        |
-        TYPE IDENTIFIER
-        ;
+    }
+    | ID '=' FunctionCall
+    | ID '=' ArrayUsage
+    | ID '+' Assignment
+    | ID '-' Assignment
+    | ID '*' Assignment
+    | ID '/' Assignment
+    | NUM '+' Assignment
+    | NUM '-' Assignment
+    | NUM '*' Assignment
+    | NUM '/' Assignment
+    | '(' Assignment ')'
+    {
+        // Nothing to do
+    }
+    |   NUM
+    {
+        // DONE
+        // TODO: float immediate
+        syntax_stack.push(std::make_shared<TreeImmediate>(atoi((char*)($1))));
+        free(($1));
+    }
+    |   ID
+    {
+        // DONE
+        syntax_stack.push(std::make_shared<TreeVariable>($1));
+    }
+    ;
 
-block:
-        statement block
-        {
-            TreeSyntaxShared block_syntax;
-            if (syntax_stack.empty())
-            {
-                block_syntax = std::make_shared<TreeStatementsBlock>(std::vector<TreeSyntaxShared>{});// block_new(list_new());
-            } else if (syntax_stack.top()->type() != TreeSyntaxType::kStatementsBlock)
-            {
-                block_syntax = std::make_shared<TreeStatementsBlock>(std::vector<TreeSyntaxShared>{});
-            } else
-            {
-                block_syntax = syntax_stack.top();
-                syntax_stack.pop();
-            }
-            std::static_pointer_cast<TreeStatementsBlock>(block_syntax)->AddStatement(syntax_stack.top());
-            syntax_stack.pop();
-            syntax_stack.push(block_syntax);
-        }
-        |
-        ;
+FunctionArgs : Assignment
+    {
+        // DONE
+        assert(!syntax_stack.empty() && "Stack can't be empty! Internal error in processing non empty args list");
+        auto assign = std::make_shared<TreeFunctionArguments>(std::vector<TreeSyntaxShared>{});
+        assign->AddArgument(syntax_stack.top());
+        syntax_stack.pop();
+        syntax_stack.push(assign);
 
-argument_list:
-        nonempty_argument_list
-        |
-        {
-            // TODO: Arguments
-            syntax_stack.push(std::make_shared<TreeFunctionArguments>(std::vector<TreeSyntaxShared>{}));
-        }
-        ;
+    }
+    | FunctionArgs ',' Assignment
+    {
+        // DONE
+        // TODO: Checks??
+        // TODO: Check for correctness!
+        assert(!syntax_stack.empty() && "Stack can't be empty! Internal error in processing non empty args list");
+    
+        auto assign = syntax_stack.top();
+        syntax_stack.pop();
 
-nonempty_argument_list:
-        expression ',' nonempty_argument_list
-        {
-            TreeSyntaxShared arguments_syntax;
-            assert(!syntax_stack.empty() && "Stack can't be empty! Internal error in processing non empty args list");
-            if (syntax_stack.top()->type() != TreeSyntaxType::kFunctionArguments)
-            {
-                arguments_syntax =  std::make_shared<TreeFunctionArguments>(std::vector<TreeSyntaxShared>{});//function_arguments_new();
-            } else
-            {
-                arguments_syntax = syntax_stack.top();
-                syntax_stack.pop();
-            }
-            std::static_pointer_cast<TreeFunctionArguments>(arguments_syntax)->AddArgument(syntax_stack.top());
-            syntax_stack.pop();
-            syntax_stack.push(arguments_syntax);
-        }
-        |
-        expression
-        {
-            assert(!syntax_stack.empty() && "Stack can't be empty! Internal error in processing non empty args list");
-            auto arguments_syntax = std::make_shared<TreeFunctionArguments>(std::vector<TreeSyntaxShared>{});
-            arguments_syntax->AddArgument(syntax_stack.top());
-            syntax_stack.pop();
-            syntax_stack.push(arguments_syntax);
-        }
-        ;
+        std::static_pointer_cast<TreeFunctionArguments>(syntax_stack.top())->AddArgument(assign);
+    }
+    ;
 
-statement:
-        RETURN expression ';'
-        {
-            auto current_syntax = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeReturnStatement>(current_syntax));
-        }
-        |
-        IF '(' expression ')' OPEN_BRACE block CLOSE_BRACE
-        {
-            // TODO: else statements.
-            auto then = syntax_stack.top();
-            syntax_stack.pop();
-            auto condition = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then));
-        }
-        |
-        WHILE '(' expression ')' OPEN_BRACE block CLOSE_BRACE
-        {
-            auto body = syntax_stack.top();
-            syntax_stack.pop();
-            auto condition = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeWhileStatement>(condition, body));
-        }
-        |
-        TYPE IDENTIFIER '=' expression ';'
-        {
-            auto init_value = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeDefineVariable>($2, init_value));
-        }
-        |
-        expression ';'
-        {
-            // Nothing to do
-        }
-        ;
+/* Function Call Block */
+FunctionCall : ID '(' ')'
+    {
+        // DONE
+        auto args = std::make_shared<TreeFunctionArguments>(std::vector<TreeSyntaxShared>{});
+        syntax_stack.push(std::make_shared<TreeFunctionCall>($1, args));
+    }
+    | ID '(' FunctionArgs ')'
+    {
+        // DONE
+        auto args =  syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeFunctionCall>($1, args));
+    }
+    ;
 
-expression:
-	NUMBER
-        {
-            // TODO: float immediate
-            syntax_stack.push(std::make_shared<TreeImmediate>(atoi((char*)($1))));
-            free(($1));
-        }
-        |
-	IDENTIFIER
-        {
-            syntax_stack.push(std::make_shared<TreeVariable>($1));
-        }
-        |
-	IDENTIFIER '=' expression
-        {
-            auto expression = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeAssignment>($1, expression));
-        }
-        |
-        '~' expression
-        {
-            auto current_syntax = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeUnaryExpression>(TreeUnaryExpressionType::kBitwiseNegation, current_syntax));//  bitwise_negation_new(current_syntax));
-        }
-        |
-        '!' expression
-        {
-            auto current_syntax = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeUnaryExpression>(TreeUnaryExpressionType::kLogicalNegation, current_syntax));
-        }
-        |
-        expression '+' expression
-        {
-            auto right = syntax_stack.top();
-            syntax_stack.pop();
-            auto left = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kAddition, left, right));
-        }
-        |
-        expression '-' expression
-        {
-            auto right = syntax_stack.top();
-            syntax_stack.pop();
-            auto left = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kSubtraction, left, right));
-        }
-        |
-        expression '*' expression
-        {
-            auto right = syntax_stack.top();
-            syntax_stack.pop();
-            auto left = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kMultiplication, left, right));
-        }
-        |
-        expression '<' expression
-        {
-            auto right = syntax_stack.top();
-            syntax_stack.pop();
-            auto left = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kLessThan, left, right));
-        }
-        |
-        expression LESS_OR_EQUAL expression
-        {
-            auto right = syntax_stack.top();
-            syntax_stack.pop();
-            auto left = syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kLessThanOrEqual, left, right));
-        }
-        |
-        IDENTIFIER '(' argument_list ')'
-        {
-            auto arguments =  syntax_stack.top();
-            syntax_stack.pop();
-            syntax_stack.push(std::make_shared<TreeFunctionCall>($1, arguments));
-        }
-        ;
+/* Array Usage */
+ArrayUsage : ID'['Assignment']'
+    ;
+
+/* Function block */
+Function: Type ID '(' ArgList ')' CompoundStmt
+    {
+        std::cout << "Function block: " << $1 << " " << $2 << std::endl;
+        auto current_syntax = syntax_stack.top();
+        syntax_stack.pop();
+        assert(current_syntax->type() == TreeSyntaxType::kStatementsBlock && "Type must be TreeSyntaxType::kStatementsBlock.");
+        syntax_stack.push(std::make_shared<TreeFunction>($2, std::vector<TreeSyntaxShared>{}, current_syntax));
+    }
+    |
+    Type ID '(' ')' CompoundStmt
+    {
+        std::cout << "Function block without args!" << $1 << " " << $2 << std::endl;
+    }
+    ;
+ArgList:  ArgList ',' Arg
+    | Arg
+    ;
+Arg:    Type ID
+    ;
+CompoundStmt:   '{' StmtList '}'
+    ;
+StmtList:   StmtList Stmt
+    | 
+    ;
+Stmt: WhileStmt
+    | Declaration
+    | ForStmt
+    | IfStmt
+    | RetStmt
+    | ';'
+    {
+        // TODO: Push null statement!!
+    }
+    ;
+
+/* Type Identifier block */
+Type : INT 
+    | FLOAT
+    | CHAR
+    ;
+
+CtrlStmt : Stmt
+    | CompoundStmt
+    ;
+
+/* Loop Blocks */ 
+WhileStmt : WHILE '(' Expr ')' CtrlStmt
+    {
+        // DONE
+        auto body = syntax_stack.top();
+        syntax_stack.pop();
+        auto condition = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeWhileStatement>(condition, body));
+    }
+    ;
+
+/* For Block */
+ForStmt : FOR '(' Expr ';' Expr ';' Expr ')' CtrlStmt
+    {
+        // TODO: For statement
+    }
+    ;
+
+RetStmt : RET Expr ';'
+    {
+        // DONE
+        auto current_syntax = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeReturnStatement>(current_syntax));
+    }
+    ;
+
+/* IfStmt Block */
+IfStmt  : IF '(' Expr ')' CtrlStmt
+    {
+        // DONE
+        auto then = syntax_stack.top();
+        syntax_stack.pop();
+        auto condition = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then));
+    }
+    |
+    IF '(' Expr ')' CtrlStmt ELSE CtrlStmt
+    {
+        // TODO: ELSE statement
+        auto else_stmt = syntax_stack.top();
+        syntax_stack.pop();
+
+        auto then = syntax_stack.top();
+        syntax_stack.pop();
+        auto condition = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then));
+    }
+    ;
+
+/*Expression Block*/
+Expr:   
+    | Expr LE Expr 
+    | Expr GE Expr
+    | Expr NE Expr
+    | Expr EQ Expr
+    | Expr GT Expr
+    | Expr LT Expr
+    | Assignment
+    | ArrayUsage
+    ;
+%%
