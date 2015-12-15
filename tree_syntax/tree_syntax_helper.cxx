@@ -108,6 +108,8 @@ void TreeSyntaxHelper::OutputTreeSyntax(std::ostream &out, TreeSyntaxShared root
             OutputTreeSyntax(out, std::static_pointer_cast<TreeIfStatement>(root)->condition(), indent + kDefaultIndent);
             out << indent_str << type_str << " THEN\n";
             OutputTreeSyntax(out, std::static_pointer_cast<TreeIfStatement>(root)->then(), indent + kDefaultIndent);
+            out << indent_str << type_str << " ELSE\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeIfStatement>(root)->else_stmt(), indent + kDefaultIndent);
             break;
         case TreeSyntaxType::kReturnStatement:
             out << type_str << "\n";

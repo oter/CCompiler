@@ -190,16 +190,19 @@ private:
 class TreeIfStatement : public TreeSyntax
 {
 public:
-    explicit TreeIfStatement(TreeSyntaxShared condition, TreeSyntaxShared then) :
+    explicit TreeIfStatement(TreeSyntaxShared condition, TreeSyntaxShared then, TreeSyntaxShared else_stmt) :
             TreeSyntax(TreeSyntaxType::kIfStatement),
             condition_(condition),
-            then_(then) {}
+            then_(then),
+            else_stmt_(else_stmt) {}
     virtual ~TreeIfStatement() = default;
     const TreeSyntaxShared& condition() const noexcept { return this->condition_; }
     const TreeSyntaxShared& then() const noexcept { return this->then_; }
+    const TreeSyntaxShared& else_stmt() const noexcept { return this->else_stmt_; }
 private:
     TreeSyntaxShared condition_;
     TreeSyntaxShared then_;
+    TreeSyntaxShared else_stmt_;
 };
 
 class TreeWhileStatement : public TreeSyntax

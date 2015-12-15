@@ -19,6 +19,8 @@ class AsmGenerator
 public:
     explicit AsmGenerator(std::ostream& out, TreeSyntaxShared root);
 
+    int status() const noexcept {return this->status_; }
+
 private:
     void Generate(TreeSyntaxShared root, AsmContextShared ctx);
     void PutHeader();
@@ -33,6 +35,7 @@ private:
     // TODO: Replace with std::setfill('*') << std::setw(12)  ??
     static const std::string asm_indent_;
     std::ostream& out_;
+    int status_;
 };
 
 #endif //CCOMPILER_ASM_GENERATOR_HPP

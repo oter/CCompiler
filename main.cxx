@@ -1,9 +1,12 @@
 #include <stack>
 #include <iostream>
+#include <fstream>
+#include <string>
 
 #include "tree_syntax/tree_syntax.hpp"
 #include "tree_syntax/tree_syntax_helper.hpp"
 #include "AstProxy.hpp"
+#include "asm/asm_generator.hpp"
 //#include "assembly.hpp"
 
 static const std::string help_message = R"msg(
@@ -58,17 +61,27 @@ int main(int argc, char *argv[])
     auto operation = HandleConsoleArgs(argc, argv, file_to_compile);
     if (operation == Operation::kPrintHelp) { return 1; }
 
-    AstProxy ast;
-    int result = ast.ProcessFile(file_to_compile);
+    auto ast = std::make_shared<AstProxy>();
+    int result = ast->ProcessFile(file_to_compile);
     if (result != 0) { return result; }
-    auto root = ast.root();
+    auto root = ast->root();
 
     if (operation == Operation::kPrintAst)
     {
         TreeSyntaxHelper::OutputTreeSyntax(std::cout, root, 0);
     } else
     {
-        // TODO: Write assembly
+        const std::string file_name = ast->file_base_name() + ".asm";
+        std::ofstream out(file_name);
+
+        if (!out.is_open())
+        {
+            std::cerr << "Can't access output file " << file_name << std::endl;
+            return -10;
+        }
+
+        AsmGenerator asm_generator(out, ast->root());
+        return asm_generator.status();
     }
     return 0;
 }

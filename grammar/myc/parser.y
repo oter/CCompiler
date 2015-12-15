@@ -194,7 +194,10 @@ Assignment:
     | 
     ID '/' Assignment
     {
-        // TODO: Division
+        auto assign = syntax_stack.top();
+        syntax_stack.pop();
+        auto lhs = std::make_shared<TreeVariable>($1);
+        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kDivision, lhs, assign));
     }
     | 
     NUM '+' Assignment
@@ -226,7 +229,11 @@ Assignment:
     | 
     NUM '/' Assignment
     {
-        // TODO: Division
+        auto assign = syntax_stack.top();
+        syntax_stack.pop();
+        auto lhs = std::make_shared<TreeImmediate>($1);
+        free($1);
+        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kDivision, lhs, assign));
     }
     | 
     '(' Assignment ')'
@@ -324,7 +331,6 @@ Function:
         //std::cout << TreeSyntaxHelper::GetSyntaxTypeName(syntax_stack.top()) << std::endl;
         //std::cout << "Size: " << syntax_stack.size() << std::endl;
         // DONE
-        // TODO: Check empty function
         //std::cout << "Function block: " << $1 << " " << $2 << std::endl;
         auto compound = syntax_stack.top();
         syntax_stack.pop();
@@ -453,6 +459,7 @@ WhileStmt : WHILE '(' Expr ')' CtrlStmt
 /* For Block */
 ForStmt : FOR '(' Expr ';' Expr ';' Expr ')' CtrlStmt
     {
+        // DONE
         std::cout << "size: " << syntax_stack.size() << std::endl;
         assert(syntax_stack.size() >= 4 && "Not all expressions parsed.");
         auto body = syntax_stack.top();
@@ -488,12 +495,11 @@ IfStmt  : IF '(' Expr ')' CtrlStmt
         syntax_stack.pop();
         auto condition = syntax_stack.top();
         syntax_stack.pop();
-        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then));
+        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then, std::make_shared<TreeEmptyStatement>()));
     }
     |
     IF '(' Expr ')' CtrlStmt ELSE CtrlStmt
     {
-        // TODO: ELSE statement
         auto else_stmt = syntax_stack.top();
         syntax_stack.pop();
 
@@ -501,19 +507,45 @@ IfStmt  : IF '(' Expr ')' CtrlStmt
         syntax_stack.pop();
         auto condition = syntax_stack.top();
         syntax_stack.pop();
-        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then));
+        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then, else_stmt));
     }
     ;
 
 /*Expression Block*/
-Expr:   
-    | Expr LE Expr 
-    | Expr GE Expr
-    | Expr NE Expr
-    | Expr EQ Expr
-    | Expr GT Expr
-    | Expr LT Expr
-    | Assignment
-    | ArrayUsage
+Expr:
+    |
+    Expr LE Expr
+    {
+
+    } 
+    | 
+    Expr GE Expr
+    {
+
+    }
+    | 
+    Expr NE Expr
+    {
+
+    }
+    | 
+    Expr EQ Expr
+    {
+
+    }
+    | 
+    Expr GT Expr
+    {
+
+    }
+    | 
+    Expr LT Expr
+    {
+
+    }
+    | 
+    Assignment
+    | 
+    ArrayUsage
     ;
 %%

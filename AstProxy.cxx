@@ -40,8 +40,8 @@ int AstProxy::ProcessFile(const std::string &file_name)
     CommentsCleaner cleaner(src_with);
     auto src_without = cleaner.ToString();
 
-    std::string file_path_base = RemoveFilenameExtension(file_name);
-    std::string file_path_cleaned = file_path_base + ".cleaned";
+    this->file_base_name_ = RemoveFilenameExtension(file_name);
+    std::string file_path_cleaned = this->file_base_name_ + ".cleaned";
 
     std::ofstream o_file_without(file_path_cleaned);
     if (o_file_without.is_open())
@@ -63,7 +63,7 @@ int AstProxy::ProcessFile(const std::string &file_name)
         return -2;
     }
 
-    // Empty the working stack
+    // First empty the working stack
     while(!syntax_stack.empty()) { syntax_stack.pop(); }
     // Parse
     int parse_result = yyparse();

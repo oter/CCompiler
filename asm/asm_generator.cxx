@@ -11,12 +11,13 @@
 
 decltype(AsmGenerator::asm_indent_) AsmGenerator::asm_indent_ = "    ";
 
-AsmGenerator::AsmGenerator(std::ostream& out, TreeSyntaxShared root) : out_(out)
+AsmGenerator::AsmGenerator(std::ostream& out, TreeSyntaxShared root) : out_(out), status_(0)
 {
     PutHeader();
     auto ctx = std::make_shared<AsmContext>();
     Generate(root, ctx);
     PutEnding();
+    this->status_ = 0;
 }
 
 void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
@@ -56,6 +57,10 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
 
             switch (binary->expr_type())
             {
+                case TreeBinaryExpressionType::kDivision:
+                    PutInstruction("sub", (boost::format("%%eax, %1%(%%ebp)") % offset).str());
+                    PutInstruction("mov", (boost::format("%1%(%%ebp), %%eax") % offset).str());
+                    break;
                 case TreeBinaryExpressionType::kMultiplication:
                     PutInstruction("mull", (boost::format("%1%(%%ebp)") % offset).str());
                     break;
@@ -98,6 +103,10 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
         }
         case TreeSyntaxType::kWhileStatement:break;
         case TreeSyntaxType::kTopLevel:break;
+        case TreeSyntaxType::kArrayIndexer:break;
+        case TreeSyntaxType::kArrayAssignment:break;
+        case TreeSyntaxType::kEmptyStatement:break;
+        case TreeSyntaxType::kTreeForStatement:break;
     }
 }
 
