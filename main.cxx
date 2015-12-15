@@ -6,15 +6,6 @@
 #include "AstProxy.hpp"
 //#include "assembly.hpp"
 
-//
-//Disable warnings when use deprecated features like auto_ptr in boost.
-//#pragma GCC diagnostic push
-//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-//
-//#include <boost/regex.hpp>
-//
-//#pragma GCC diagnostic pop
-
 static const std::string help_message = R"msg(
 Welcome to My C compiler.
     usage:

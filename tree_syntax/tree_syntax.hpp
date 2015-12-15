@@ -13,6 +13,7 @@ enum class TreeSyntaxType
 {
     kImmediate,
     kVariable,
+    kArrayIndexer,
     kUnaryOperator,
     kBinaryOperator,
     kStatementsBlock,
@@ -24,8 +25,11 @@ enum class TreeSyntaxType
     kFunctionArgument,
     kFunctionArguments,
     kAssignment,
+    kArrayAssignment,
     kWhileStatement,
-    kTopLevel
+    kTopLevel,
+    kEmptyStatement,
+    kTreeForStatement
 };
 
 enum class TreeUnaryExpressionType
@@ -39,6 +43,7 @@ enum class TreeBinaryExpressionType
     kAddition,
     kSubtraction,
     kMultiplication,
+    kDivision,
     kLessThan,
     kLessThanOrEqual
 };
@@ -58,11 +63,12 @@ using TreeSyntaxShared = std::shared_ptr<TreeSyntax>;
 class TreeImmediate : public TreeSyntax
 {
 public:
-    explicit TreeImmediate(int value) : TreeSyntax(TreeSyntaxType::kImmediate), value_(value) {}
+    // TODO: Type
+    explicit TreeImmediate(const std::string& value) : TreeSyntax(TreeSyntaxType::kImmediate), value_(value) {}
     virtual ~TreeImmediate() = default;
-    int value() const noexcept { return this->value_; }
+    const std::string& value() const noexcept { return this->value_; }
 private:
-    int value_;
+    std::string value_;
 };
 
 class TreeVariable : public TreeSyntax
@@ -166,6 +172,21 @@ private:
     TreeSyntaxShared expr_;
 };
 
+class TreeArrayAssignment : public TreeSyntax
+{
+public:
+    explicit TreeArrayAssignment(TreeSyntaxShared var, TreeSyntaxShared expr) :
+            TreeSyntax(TreeSyntaxType::kArrayAssignment),
+            var_(var),
+            expr_(expr) {}
+    virtual ~TreeArrayAssignment() = default;
+    const TreeSyntaxShared& var() const noexcept { return this->var_; }
+    const TreeSyntaxShared& expr() const noexcept { return this->expr_; }
+private:
+    TreeSyntaxShared var_;
+    TreeSyntaxShared expr_;
+};
+
 class TreeIfStatement : public TreeSyntax
 {
 public:
@@ -225,19 +246,19 @@ private:
 class TreeFunction : public TreeSyntax
 {
 public:
-    explicit TreeFunction(const std::string& name, const std::vector<TreeSyntaxShared>& args, TreeSyntaxShared root) :
+    explicit TreeFunction(const std::string& name, TreeSyntaxShared args, TreeSyntaxShared compound) :
             TreeSyntax(TreeSyntaxType::kFunction),
             name_(name),
             args_(args),
-            root_(root){}
+            compound_(compound){}
     virtual ~TreeFunction() = default;
     const std::string& name() const noexcept { return this->name_; }
-    const std::vector<TreeSyntaxShared>& args() const noexcept { return this->args_; }
-    const TreeSyntaxShared& root() const noexcept { return this->root_; }
+    const TreeSyntaxShared args() const noexcept { return this->args_; }
+    const TreeSyntaxShared& compound() const noexcept { return this->compound_; }
 private:
     std::string name_;
-    std::vector<TreeSyntaxShared> args_;
-    TreeSyntaxShared root_;
+    TreeSyntaxShared args_;
+    TreeSyntaxShared compound_;
 };
 
 
@@ -266,6 +287,53 @@ public:
     void AddDeclaration(TreeSyntaxShared decl) {this->decls_.push_back(decl); }
 private:
     std::vector<TreeSyntaxShared> decls_;
+};
+
+class TreeArrayIndexer : public TreeSyntax
+{
+public:
+    explicit TreeArrayIndexer(const std::string& var_name, TreeSyntaxShared expr) :
+            TreeSyntax(TreeSyntaxType::kArrayIndexer),
+            var_name_(var_name),
+            expression_(expr) {}
+
+    const std::string var_name() const noexcept { return this->var_name_; }
+
+    const TreeSyntaxShared& expression() const noexcept { return this->expression_; }
+
+private:
+    std::string var_name_;
+    TreeSyntaxShared expression_;
+};
+
+class TreeEmptyStatement : public TreeSyntax
+{
+public:
+    TreeEmptyStatement() : TreeSyntax(TreeSyntaxType::kEmptyStatement) {}
+};
+
+class TreeForStatement : public TreeSyntax
+{
+public:
+    explicit TreeForStatement(TreeSyntaxShared assign, TreeSyntaxShared condition, TreeSyntaxShared inc, TreeSyntaxShared body) :
+            TreeSyntax(TreeSyntaxType::kTreeForStatement),
+            assign_(assign),
+            condition_(condition),
+            inc_(inc),
+            body_(body) {}
+
+    const TreeSyntaxShared& assign() const noexcept { return this->assign_; }
+    const TreeSyntaxShared& condition() const noexcept { return this->condition_; }
+    const TreeSyntaxShared& inc() const noexcept { return this->inc_; }
+    const TreeSyntaxShared& body() const noexcept { return this->body_; }
+
+
+private:
+    TreeSyntaxShared assign_;
+    TreeSyntaxShared condition_;
+    TreeSyntaxShared inc_;
+    TreeSyntaxShared body_;
+
 };
 
 

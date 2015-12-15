@@ -72,16 +72,22 @@ int AstProxy::ProcessFile(const std::string &file_name)
         return parse_result;
     }
 
-    this->root_ = syntax_stack.top();
-    syntax_stack.pop();
-    if (syntax_stack.size() > 0) {
-        std::cerr << "WARNING: Remaining objects are left in the stack after parsing:";
-        while(syntax_stack.size() > 0) {
-            std::cerr << "====TREE_ROOT====\n\t";
-            std::cerr << TreeSyntaxHelper::GetSyntaxTypeName(syntax_stack.top()) << std::endl;
-            syntax_stack.pop();
-        }
+    if (syntax_stack.size() == 0)
+    {
+        std::cout << "Internal error" << std::endl;
+        return -5;
     }
+
+        this->root_ = syntax_stack.top();
+        syntax_stack.pop();
+        if (syntax_stack.size() > 0) {
+            std::cerr << "WARNING: Remaining objects are left in the stack after parsing:\n";
+            while(syntax_stack.size() > 0) {
+                std::cerr << "====TREE_ROOT====\n\t";
+                std::cerr << TreeSyntaxHelper::GetSyntaxTypeName(syntax_stack.top()) << std::endl;
+                syntax_stack.pop();
+            }
+        }
 
     fclose(yyin);
     yyin = nullptr;

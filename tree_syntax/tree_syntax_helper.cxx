@@ -22,6 +22,10 @@ decltype(TreeSyntaxHelper::tree_syntax_types_) TreeSyntaxHelper::tree_syntax_typ
                 { TreeSyntaxType::kAssignment,          "ASSIGNMENT"},
                 { TreeSyntaxType::kWhileStatement,      "WHILE_STATEMENT"},
                 { TreeSyntaxType::kTopLevel,            "TOP_LEVEL"},
+                { TreeSyntaxType::kArrayIndexer,        "ARRAY_INDEXER"},
+                { TreeSyntaxType::kEmptyStatement,      "EMPTY_STATEMENT"},
+                { TreeSyntaxType::kArrayAssignment,     "ARRAY_ELEMENT_ASSIGN"},
+                { TreeSyntaxType::kTreeForStatement,    "FOR_STATEMENT"},
         };
 
 decltype(TreeSyntaxHelper::tree_unary_types_) TreeSyntaxHelper::tree_unary_types_ =
@@ -35,6 +39,7 @@ decltype(TreeSyntaxHelper::tree_binary_types_) TreeSyntaxHelper::tree_binary_typ
                 { TreeBinaryExpressionType::kAddition,          "BINARY_ADDITION" },
                 { TreeBinaryExpressionType::kSubtraction,       "BINARY_SUBTRACTION" },
                 { TreeBinaryExpressionType::kMultiplication,    "BINARY_MULTIPLICATION" },
+                { TreeBinaryExpressionType::kDivision,          "BINARY_DIVISION" },
                 { TreeBinaryExpressionType::kLessThan,          "LESS_THAN" },
                 { TreeBinaryExpressionType::kLessThanOrEqual,   "LESS_THAN_OR_EQUAL" },
         };
@@ -58,10 +63,20 @@ void TreeSyntaxHelper::OutputTreeSyntax(std::ostream &out, TreeSyntaxShared root
     const std::string indent_str(indent, ' ');
     out << indent_str;
 
-    auto&type_str = GetSyntaxTypeName(root);
+    auto& type_str = GetSyntaxTypeName(root);
 
     switch (root->type())
     {
+        case TreeSyntaxType::kArrayAssignment:
+            out << type_str << " ARRAY_VAR\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeArrayAssignment>(root)->var(), indent + kDefaultIndent);
+            out << indent_str << type_str << " ASSIGN\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeArrayAssignment>(root)->expr(), indent + kDefaultIndent);
+            break;
+        case TreeSyntaxType::kArrayIndexer:
+            out << type_str << " \"" << std::static_pointer_cast<TreeArrayIndexer>(root)->var_name() << "\"[->]\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeArrayIndexer>(root)->expression(), indent + kDefaultIndent);
+            break;
         case TreeSyntaxType::kImmediate:
             out << type_str << " \"" << std::static_pointer_cast<TreeImmediate>(root)->value() << "\"\n";
             break;
@@ -100,34 +115,45 @@ void TreeSyntaxHelper::OutputTreeSyntax(std::ostream &out, TreeSyntaxShared root
             break;
         case TreeSyntaxType::kDefineVariable:
         {
-            auto& name = std::static_pointer_cast<TreeDefineVariable>(root)->name();
-            out << type_str << " \"" << name << "\"\n";
-            out << indent_str << " \"" << name << "\" INITIAL_VALUE\n";
-            OutputTreeSyntax(out, std::static_pointer_cast<TreeDefineVariable>(root)->init_value(), indent + kDefaultIndent);
+            auto def = std::static_pointer_cast<TreeDefineVariable>(root);
+            out << type_str << " \"" << def->name() << "\"\n";
+            if (def->init_value()->type() != TreeSyntaxType::kEmptyStatement)
+            {
+                out << indent_str << " \"" << def->name() << "\" INITIAL_VALUE\n";
+                OutputTreeSyntax(out, std::static_pointer_cast<TreeDefineVariable>(root)->init_value(), indent + kDefaultIndent);
+            } else
+            {
+                // Handle uninitialized variable
+            }
+
             break;
         }
         case TreeSyntaxType::kFunction:
-            // TODO: print arguments
             out << type_str << " \"" << std::static_pointer_cast<TreeFunction>(root)->name() << "\"\n";
-            OutputTreeSyntax(out, std::static_pointer_cast<TreeFunction>(root)->root(), indent + kDefaultIndent);
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeFunction>(root)->args(), indent + kDefaultIndent);
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeFunction>(root)->compound(), indent + kDefaultIndent);
             break;
         case TreeSyntaxType::kFunctionCall:
         {
             auto func = std::static_pointer_cast<TreeFunctionCall>(root);
             out << type_str << " \"" << func->name() << "()\"\n";
-            OutputTreeSyntax(out, func->args(), indent);
+            OutputTreeSyntax(out, func->args(), indent + kDefaultIndent);
             break;
         }
         case TreeSyntaxType::kFunctionArgument:
-            // TODO: implement case for kFunctionArgument
-            assert(0 && "Case for kFunctionArgument not implemented");
+        {
+            auto args = std::static_pointer_cast<TreeFunctionArgument>(root);
+            out << type_str << " \"" << args->name() << "\"\n";
+
             break;
+        }
         case TreeSyntaxType::kFunctionArguments:
         {
             out << type_str << "\n";
             const auto &args = std::static_pointer_cast<TreeFunctionArguments>(root);
             for (auto& arg : args->args())
             {
+                out << indent_str << " ARGUMENT\n";
                 OutputTreeSyntax(out, arg, indent + kDefaultIndent);
             }
             break;
@@ -137,10 +163,9 @@ void TreeSyntaxHelper::OutputTreeSyntax(std::ostream &out, TreeSyntaxShared root
             OutputTreeSyntax(out, std::static_pointer_cast<TreeAssignment>(root)->expr(), indent + kDefaultIndent);
             break;
         case TreeSyntaxType::kWhileStatement:
-            // TODO: Check correctness
-            out << type_str << "\nCONDITION\n";
+            out << type_str << " CONDITION\n";
             OutputTreeSyntax(out, std::static_pointer_cast<TreeWhileStatement>(root)->condition(), indent + kDefaultIndent);
-            out << type_str << "\nBODY\n";
+            out  << indent_str << type_str << " BODY\n";
             OutputTreeSyntax(out, std::static_pointer_cast<TreeWhileStatement>(root)->body(), indent + kDefaultIndent);
             break;
         case TreeSyntaxType::kTopLevel:
@@ -150,5 +175,21 @@ void TreeSyntaxHelper::OutputTreeSyntax(std::ostream &out, TreeSyntaxShared root
                 OutputTreeSyntax(out, declaration, indent + kDefaultIndent);
             }
             break;
+        case TreeSyntaxType::kEmptyStatement:
+            out << type_str << "\n";
+            break;
+        case TreeSyntaxType::kTreeForStatement:
+        {
+            out << type_str << " INITIAL\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeForStatement>(root)->assign(), indent + kDefaultIndent);
+            out  << indent_str << type_str << " CONDITION\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeForStatement>(root)->condition(), indent + kDefaultIndent);
+            out  << indent_str << type_str << " INCREMENT\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeForStatement>(root)->inc(), indent + kDefaultIndent);
+            out  << indent_str << type_str << " BODY\n";
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeForStatement>(root)->body(), indent + kDefaultIndent);
+
+            break;
+        }
     }
 }

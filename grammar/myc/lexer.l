@@ -38,6 +38,7 @@ digit [0-9]
 ">"                         { return GT; }
 "<"                         { return LT; }
 "&&"                        { return AND; }
+"~"							{ return XOR; }
 "||"                        { return OR; }
 "!"                         { return NOT; }
 \/\*(.*\n)*.*\*\/           ;
