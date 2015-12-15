@@ -1,18 +1,18 @@
-CC=myc
-ASMBIN=JWasm
-LINKBIN=link
+CC=myc-d
+ASMBIN=as
+LINKBIN=ld
 
-all : asm link
-	cc asm link
- cc :
-	$(CC) main.c
+all : cc asm link
+	
+cc :
+	$(CC) --c main.c
 asm :
-	$(ASMBIN) -4 -coff out.s
+	$(ASMBIN) main.asm_ -o main.obj
 link :
-	$(LINKBIN) /subsystem:console out.obj
+	$(LINKBIN) -s -o main.exe main.obj
 clean :
 	rm *.obj
-	rm out.s
+	rm *.asm_
 	# rm errors.txt
 	# rm func.lst
 

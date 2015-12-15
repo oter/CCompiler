@@ -71,7 +71,8 @@ int main(int argc, char *argv[])
         TreeSyntaxHelper::OutputTreeSyntax(std::cout, root, 0);
     } else
     {
-        const std::string file_name = ast->file_base_name() + ".asm";
+        TreeSyntaxHelper::OutputTreeSyntax(std::cout, root, 0);
+        const std::string file_name = ast->file_base_name() + ".asm_";
         std::ofstream out(file_name);
 
         if (!out.is_open())

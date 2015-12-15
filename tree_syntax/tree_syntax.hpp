@@ -249,19 +249,19 @@ private:
 class TreeFunction : public TreeSyntax
 {
 public:
-    explicit TreeFunction(const std::string& name, TreeSyntaxShared args, TreeSyntaxShared compound) :
+    explicit TreeFunction(const std::string& name, TreeSyntaxShared args, TreeSyntaxShared body) :
             TreeSyntax(TreeSyntaxType::kFunction),
             name_(name),
             args_(args),
-            compound_(compound){}
+            body_(body){}
     virtual ~TreeFunction() = default;
     const std::string& name() const noexcept { return this->name_; }
     const TreeSyntaxShared args() const noexcept { return this->args_; }
-    const TreeSyntaxShared& compound() const noexcept { return this->compound_; }
+    const TreeSyntaxShared& body() const noexcept { return this->body_; }
 private:
     std::string name_;
     TreeSyntaxShared args_;
-    TreeSyntaxShared compound_;
+    TreeSyntaxShared body_;
 };
 
 

@@ -22,7 +22,7 @@ public:
     int status() const noexcept {return this->status_; }
 
 private:
-    void Generate(TreeSyntaxShared root, AsmContextShared ctx);
+    void Generate(TreeSyntaxShared root, AsmContextShared& ctx);
     void PutHeader();
     void PutEnding();
     void PutFunctionDeclaration(const std::string& name);

@@ -20,7 +20,7 @@ AsmGenerator::AsmGenerator(std::ostream& out, TreeSyntaxShared root) : out_(out)
     this->status_ = 0;
 }
 
-void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
+void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared& ctx)
 {
     switch (root->type())
     {
@@ -84,14 +84,53 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
             }
             break;
         }
-        case TreeSyntaxType::kStatementsBlock:break;
-        case TreeSyntaxType::kIfStatement:break;
+        case TreeSyntaxType::kStatementsBlock:
+        {
+            auto stmts = std::static_pointer_cast<TreeStatementsBlock>(root)->stmts();
+            for (auto stmt : stmts)
+            {
+                // TODO: change ctx?
+                Generate(stmt, ctx);
+            }
+            break;
+        }
+        case TreeSyntaxType::kIfStatement:
+        {
+            // TODO: if statement
+            break;
+        }
         case TreeSyntaxType::kReturnStatement:
             Generate(std::static_pointer_cast<TreeReturnStatement>(root)->expression(), ctx);
+            //PutFunctionEpilogue(); // TODO: is it needed?
             break;
-        case TreeSyntaxType::kDefineVariable:break;
-        case TreeSyntaxType::kFunction:break;
-        case TreeSyntaxType::kFunctionCall:break;
+        case TreeSyntaxType::kDefineVariable:
+        {
+            auto var = std::static_pointer_cast<TreeDefineVariable>(root);
+            int offset = ctx->stack_offset();
+            auto new_var = std::make_shared<AsmVariable >(var->name(), offset);
+            ctx->current_scope()->AddVariable(new_var);
+            PutInstruction("sub", "$4, %esp");
+            ctx->set_stack_offset(offset - AsmContext::kWordSize);
+            Generate(var->init_value(), ctx);
+            PutInstruction("mov", (boost::format("%%eax, %1%(%%ebp)") % offset).str());
+            break;
+        }
+        case TreeSyntaxType::kFunction:
+        {
+            auto func = std::static_pointer_cast<TreeFunction>(root);
+            ctx = std::make_shared<AsmContext>();
+            ctx->set_current_scope(std::make_shared<AsmScope>());
+
+            PutFunctionDeclaration(func->name());
+            PutFunctionPrologue();
+            Generate(func->body(), ctx);
+            PutFunctionEpilogue();
+            break;
+        }
+        case TreeSyntaxType::kFunctionCall:
+            // TODO: push arguments
+            PutInstruction("call", std::static_pointer_cast<TreeFunctionCall>(root)->name());
+            break;
         case TreeSyntaxType::kFunctionArgument:break;
         case TreeSyntaxType::kFunctionArguments:break;
         case TreeSyntaxType::kAssignment:
@@ -101,8 +140,33 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
             PutInstruction("mov", (boost::format("%%eax, %1%(%%ebp)") % ctx->current_scope()->GetVariable(assign->var_name())->offset()).str());
             break;
         }
-        case TreeSyntaxType::kWhileStatement:break;
-        case TreeSyntaxType::kTopLevel:break;
+        case TreeSyntaxType::kWhileStatement:
+        {
+            auto while_stmt = std::static_pointer_cast<TreeWhileStatement>(root);
+
+            auto start_label = ctx->GetLabel("while_start_ctx");
+            auto end_label = ctx->GetLabel("while_end_ctx");
+
+            PutLabel(start_label);
+            Generate(while_stmt->condition(), ctx);
+
+            PutInstruction("test", "%eax, %eax");
+            PutInstruction("jz", end_label);
+
+            Generate(while_stmt->body(), ctx);
+            PutInstruction("jmp", start_label);
+            PutLabel(end_label);
+            break;
+        }
+        case TreeSyntaxType::kTopLevel:
+        {
+            auto top = std::static_pointer_cast<TreeTopLevel>(root);
+            for (auto decl : top->decls())
+            {
+                Generate(decl, ctx);
+            }
+            break;
+        }
         case TreeSyntaxType::kArrayIndexer:break;
         case TreeSyntaxType::kArrayAssignment:break;
         case TreeSyntaxType::kEmptyStatement:break;
@@ -113,8 +177,7 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared ctx)
 void AsmGenerator::PutInstruction(const std::string &instr, const std::string& args)
 {
     this->out_ << asm_indent_ << instr;
-    std::string instr_args_indent_str;
-    instr_args_indent_str.append(' ', kMaxInstructionLength - instr.length() + kMinInstrArgsIndent);
+    std::string instr_args_indent_str(kMaxInstructionLength - instr.length() + kMinInstrArgsIndent, ' ');
     this->out_ << instr_args_indent_str << args << "\n";
 }
 
@@ -129,7 +192,7 @@ void AsmGenerator::PutEnding()
     PutFunctionPrologue();
     PutInstruction("call", "main");
     PutInstruction("mov", "%eax, %ebx");
-    PutInstruction("mov", "%1, %eax");
+    PutInstruction("mov", "$1, %eax");
     // TODO: Check return
     PutFunctionEpilogue();
 }
@@ -137,7 +200,7 @@ void AsmGenerator::PutEnding()
 void AsmGenerator::PutFunctionDeclaration(const std::string &name)
 {
     this->out_ << asm_indent_ << ".global " << name << "\n";
-    this->out_ << name << ":";
+    this->out_ << name << ":\n";
 }
 
 void AsmGenerator::PutFunctionPrologue()

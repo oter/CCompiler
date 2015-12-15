@@ -133,7 +133,7 @@ void TreeSyntaxHelper::OutputTreeSyntax(std::ostream &out, TreeSyntaxShared root
         case TreeSyntaxType::kFunction:
             out << type_str << " \"" << std::static_pointer_cast<TreeFunction>(root)->name() << "\"\n";
             OutputTreeSyntax(out, std::static_pointer_cast<TreeFunction>(root)->args(), indent + kDefaultIndent);
-            OutputTreeSyntax(out, std::static_pointer_cast<TreeFunction>(root)->compound(), indent + kDefaultIndent);
+            OutputTreeSyntax(out, std::static_pointer_cast<TreeFunction>(root)->body(), indent + kDefaultIndent);
             break;
         case TreeSyntaxType::kFunctionCall:
         {
