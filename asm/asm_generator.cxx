@@ -2,6 +2,7 @@
 // Created by Maxym on 12/12/2015.
 //
 #include "asm_generator.hpp"
+#include "../tree_syntax/tree_syntax_helper.hpp"
 
 //Disable warnings when use deprecated features like auto_ptr in boost.
 #pragma GCC diagnostic push
@@ -34,7 +35,6 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared& ctx)
         {
             auto expr = std::static_pointer_cast<TreeUnaryExpression>(root);
             // Expand expression first
-            // TODO: Add unary operations for ++ and --
             Generate(expr->expression(), ctx);
             if (expr->expr_type() == TreeUnaryExpressionType::kBitwiseNegation)
             {
@@ -53,13 +53,16 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared& ctx)
             ctx->set_stack_offset(offset - AsmContext::kWordSize);
 
             PutInstruction("sub", "$4, %esp");
+            Generate(binary->lhs(), ctx);
+            PutInstruction("mov", (boost::format("%%eax, %1%(%%ebp)") % offset).str());
             Generate(binary->rhs(), ctx);
 
             switch (binary->expr_type())
             {
                 case TreeBinaryExpressionType::kDivision:
-                    PutInstruction("sub", (boost::format("%%eax, %1%(%%ebp)") % offset).str());
-                    PutInstruction("mov", (boost::format("%1%(%%ebp), %%eax") % offset).str());
+                    // TODO: Division generation
+                    PutInstruction("xor", "%edx, %edx");
+                    PutInstruction("divl", (boost::format("%1%(%%ebp)") % offset).str());
                     break;
                 case TreeBinaryExpressionType::kMultiplication:
                     PutInstruction("mull", (boost::format("%1%(%%ebp)") % offset).str());
@@ -94,11 +97,7 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared& ctx)
             }
             break;
         }
-        case TreeSyntaxType::kIfStatement:
-        {
-            // TODO: if statement
-            break;
-        }
+
         case TreeSyntaxType::kReturnStatement:
             Generate(std::static_pointer_cast<TreeReturnStatement>(root)->expression(), ctx);
             //PutFunctionEpilogue(); // TODO: is it needed?
@@ -131,8 +130,7 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared& ctx)
             // TODO: push arguments
             PutInstruction("call", std::static_pointer_cast<TreeFunctionCall>(root)->name());
             break;
-        case TreeSyntaxType::kFunctionArgument:break;
-        case TreeSyntaxType::kFunctionArguments:break;
+
         case TreeSyntaxType::kAssignment:
         {
             auto assign = std::static_pointer_cast<TreeAssignment>(root);
@@ -167,10 +165,36 @@ void AsmGenerator::Generate(TreeSyntaxShared root, AsmContextShared& ctx)
             }
             break;
         }
-        case TreeSyntaxType::kArrayIndexer:break;
-        case TreeSyntaxType::kArrayAssignment:break;
-        case TreeSyntaxType::kEmptyStatement:break;
-        case TreeSyntaxType::kTreeForStatement:break;
+        case TreeSyntaxType::kIfStatement:
+        {
+            auto if_stmt = std::static_pointer_cast<TreeIfStatement>(root);
+            Generate(if_stmt->condition(), ctx);
+
+            auto label_else = ctx->GetLabel("if_else_ctx");
+
+            PutInstruction("test", "%eax, %eax");
+            PutInstruction("jz", label_else);
+
+            Generate(if_stmt->then(), ctx);
+            PutLabel(label_else);
+            Generate(if_stmt->else_stmt(), ctx);
+            break;
+        }
+        case TreeSyntaxType::kEmptyStatement:
+        {
+            // Nothing to do
+            break;
+        }
+        case TreeSyntaxType::kFunctionArgument:;
+        case TreeSyntaxType::kFunctionArguments:;
+        case TreeSyntaxType::kArrayIndexer:;
+        case TreeSyntaxType::kArrayAssignment:;
+
+        case TreeSyntaxType::kTreeForStatement:
+        {
+            std::cerr << "WANING: Cannot generate code for " << TreeSyntaxHelper::GetSyntaxTypeName(root) << std::endl;
+            break;
+        }
     }
 }
 
@@ -191,9 +215,6 @@ void AsmGenerator::PutEnding()
     PutFunctionDeclaration("_start");
     PutFunctionPrologue();
     PutInstruction("call", "main");
-    PutInstruction("mov", "%eax, %ebx");
-    PutInstruction("mov", "$1, %eax");
-    // TODO: Check return
     PutFunctionEpilogue();
 }
 

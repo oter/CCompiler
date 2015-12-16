@@ -1,0 +1,12 @@
+IF '(' Expr ')' CtrlStmt ELSE CtrlStmt
+    {
+        auto else_stmt = syntax_stack.top();
+        syntax_stack.pop();
+
+        auto then = syntax_stack.top();
+        syntax_stack.pop();
+        auto condition = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then, else_stmt));
+    }
+    |

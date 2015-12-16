@@ -34,10 +34,17 @@ std::stack<TreeSyntaxShared> syntax_stack;
 %token IF ELSE
 %token NUM ID LE GE EQ NE LT GT AND OR NOT XOR
 
-%right NOT XOR
-%right '='
+%left '='
 %left AND OR
 %left '<' '>' LE GE EQ NE LT GT
+
+%left  '+'
+%left '-'
+%left '*'
+%left '/'
+
+%nonassoc NOT
+%nonassoc XOR
 %%
 
 start : GlobalList
@@ -101,7 +108,8 @@ GlblDecl:
     ;
 
 /* Declaration block */
-Declaration: Type ID ';'
+Declaration:
+    Type ID ';'
     {
         // TODO: Type $1
         std::cout << "Warning: Uninitialized variable: " << $1 << " " << $2 << std::endl;
@@ -168,80 +176,53 @@ Assignment:
         syntax_stack.push(std::make_shared<TreeArrayAssignment>(var, assign));
     }
     | 
-    ID '+' Assignment
+    Assignment '+' Assignment
     {
-        auto assign = syntax_stack.top();
+    std::cout << "Assign!!" << std::endl;
+
+        auto lhs = syntax_stack.top();
         syntax_stack.pop();
-        auto lhs = std::make_shared<TreeVariable>($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kAddition, lhs, assign));
+        auto rhs = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kAddition, lhs, rhs));
     }
     | 
-    ID '-' Assignment
+    Assignment '-' Assignment
     {
-        auto assign = syntax_stack.top();
+        auto lhs = syntax_stack.top();
         syntax_stack.pop();
-        auto lhs = std::make_shared<TreeVariable>($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kSubtraction, lhs, assign));
+        auto rhs = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kSubtraction, lhs, rhs));
     }
     | 
-    ID '*' Assignment
+    Assignment '*' Assignment
     {
-        auto assign = syntax_stack.top();
+        auto lhs = syntax_stack.top();
         syntax_stack.pop();
-        auto lhs = std::make_shared<TreeVariable>($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kMultiplication, lhs, assign));
+        auto rhs = syntax_stack.top();
+        syntax_stack.pop();
+        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kMultiplication, lhs, rhs));
     }
     | 
-    ID '/' Assignment
+    Assignment '/' Assignment
     {
-        auto assign = syntax_stack.top();
+        auto lhs = syntax_stack.top();
         syntax_stack.pop();
-        auto lhs = std::make_shared<TreeVariable>($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kDivision, lhs, assign));
-    }
-    | 
-    NUM '+' Assignment
-    {
-        auto assign = syntax_stack.top();
+        auto rhs = syntax_stack.top();
         syntax_stack.pop();
-        auto lhs = std::make_shared<TreeImmediate>($1);
-        free($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kAddition, lhs, assign));
+        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kDivision,  lhs, rhs));
     }
-    | 
-    NUM '-' Assignment
-    {
-        auto assign = syntax_stack.top();
-        syntax_stack.pop();
-        auto lhs = std::make_shared<TreeImmediate>($1);
-        free($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kSubtraction, lhs, assign));
-    }
-    | 
-    NUM '*' Assignment
-    {
-        auto assign = syntax_stack.top();
-        syntax_stack.pop();
-        auto lhs = std::make_shared<TreeImmediate>($1);
-        free($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kMultiplication, lhs, assign));
-    }
-    | 
-    NUM '/' Assignment
-    {
-        auto assign = syntax_stack.top();
-        syntax_stack.pop();
-        auto lhs = std::make_shared<TreeImmediate>($1);
-        free($1);
-        syntax_stack.push(std::make_shared<TreeBinaryExpression>(TreeBinaryExpressionType::kDivision, lhs, assign));
-    }
-    | 
+    |
     '(' Assignment ')'
     {
-        // Nothing to do
+      // Nothing to do
     }
-    |   NUM
+    |
+    NUM
     {
+    std::cout << "Number" << std::endl;
+
         // DONE
         // TODO: float immediate
         syntax_stack.push(std::make_shared<TreeImmediate>($1));
@@ -251,6 +232,7 @@ Assignment:
     ID
     {
         // DONE
+        std::cout << "ID" << std::endl;
         syntax_stack.push(std::make_shared<TreeVariable>($1));
     }
     |
@@ -373,7 +355,8 @@ Arg: Type ID
         }
     }
     ;
-CompoundStmt: '{' StmtList '}'
+CompoundStmt:
+    '{' StmtList '}'
     {
         //std::cout << "CompoundStmt" << std::endl; 
         assert(syntax_stack.size() > 0 && "Invalid stack size after compound addition!");
@@ -425,7 +408,7 @@ Stmt:
         // DONE
         // TODO: Check
         auto compound = std::make_shared<TreeEmptyStatement>();
-        syntax_stack.push(compound);
+        //syntax_stack.push(compound);
     }
     ;
 
@@ -488,26 +471,16 @@ RetStmt : RET Expr ';'
     ;
 
 /* IfStmt Block */
-IfStmt  : IF '(' Expr ')' CtrlStmt
+IfStmt :
+    IF '(' Expr ')' CtrlStmt
     {
         // DONE
+        // TODO: Else statement
         auto then = syntax_stack.top();
         syntax_stack.pop();
         auto condition = syntax_stack.top();
         syntax_stack.pop();
         syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then, std::make_shared<TreeEmptyStatement>()));
-    }
-    |
-    IF '(' Expr ')' CtrlStmt ELSE CtrlStmt
-    {
-        auto else_stmt = syntax_stack.top();
-        syntax_stack.pop();
-
-        auto then = syntax_stack.top();
-        syntax_stack.pop();
-        auto condition = syntax_stack.top();
-        syntax_stack.pop();
-        syntax_stack.push(std::make_shared<TreeIfStatement>(condition, then, else_stmt));
     }
     ;
 

@@ -9,10 +9,12 @@ cc :
 asm :
 	$(ASMBIN) main.asm_ -o main.obj
 link :
-	$(LINKBIN) -s -o main.exe main.obj
+	$(LINKBIN) -e _start -s -o main.exe main.obj
 clean :
 	rm *.obj
 	rm *.asm_
+	rm *.cleaned
+	rm main.exe
 	# rm errors.txt
 	# rm func.lst
 

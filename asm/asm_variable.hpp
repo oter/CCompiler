@@ -12,15 +12,15 @@
 class AsmVariable
 {
 public:
-    explicit AsmVariable(const std::string& name, size_t offset) : name_(name), offset_(offset) {};
+    explicit AsmVariable(const std::string& name, int offset) : name_(name), offset_(offset) {};
 
     const std::string& name() const noexcept { return this->name_; }
 
-    size_t offset() const noexcept { return this->offset_; }
+    int offset() const noexcept { return this->offset_; }
 
 private:
     std::string name_;
-    size_t offset_;
+    int offset_;
 };
 
 using AsmVariableShared = std::shared_ptr<AsmVariable>;
